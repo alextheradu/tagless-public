@@ -1,0 +1,103 @@
+---
+title: CSS pseudo-elements
+order: 7
+---
+
+# CSS pseudo-elements
+
+Browsers will try to render a document even if the `<body>` is empty. Since the core shell tags like `<html>`, `<head>`, `<body>`, and `<style>` are permitted, you can build a full webpage using only CSS by leveraging the `::before` and `::after` pseudo-elements.
+
+This is a clever loophole: you aren't writing HTML tags, you're generating visual content strictly from your CSS!
+
+Here is a step-by-step guide to building a simple scene entirely in CSS.
+
+### Step 1: The Minimal HTML Shell
+
+Create a shell with an empty `<body>`. Your CSS will handle all the rendering.
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      /* We will write our CSS here! */
+    </style>
+  </head>
+  <!-- The body is completely empty! -->
+  <body></body>
+</html>
+```
+
+### Step 2: Setup the Global Styles
+
+First, let's style the root and body to set the background and dimensions. We use CSS Variables (Custom Properties) to make it easy to change themes later.
+
+```css
+/* We can define variables on :root */
+:root {
+  --bg: #0f0f23;
+  --accent: #cc0000;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+}
+```
+
+### Step 3: Injecting Content with `::before`
+
+We can use the `::before` pseudo-element on the `body` to inject text content and style it like a giant heading.
+
+```css
+body::before {
+  /* The content property actually injects text into the DOM! */
+  content: "Advent of CSS";
+  display: block;
+  
+  /* Styling our injected text */
+  color: var(--accent);
+  font: bold 3rem/1.2 monospace;
+  text-align: center;
+  padding-top: 40vh;
+}
+```
+
+### Step 4: Creating Shapes with `::after`
+
+We can use the `::after` pseudo-element to draw a visual shape, like a glowing sun, without needing an `<img>` or `<div>` tag.
+
+```css
+body::after {
+  /* An empty string is needed so the element renders, even without text */
+  content: "";
+  display: block;
+  
+  /* Give it a size */
+  width: 200px;
+  height: 200px;
+  
+  /* Draw a glowing circle using a radial gradient */
+  background: radial-gradient(circle, gold, transparent);
+  margin: 2rem auto;
+  border-radius: 50%;
+  
+  /* Add a simple animation */
+  animation: pulse 2s infinite;
+}
+
+/* Keyframes for our glowing sun animation */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+```
+
+> **Warning:** Do not use the `<link>` tag to load external stylesheets unless the rules specifically allow it; `<link>` is not on the allowed tag list. You should place your CSS inside an allowed `<style>` tag or inject it via JS.
+
+**Useful references:**
+- [CSS Tricks pseudo-elements guide](https://css-tricks.com/almanac/selectors/a/after-and-before/)
+- [A Single Div](https://a.singlediv.com/) - art made from one element and pure CSS, great inspiration
+- [CSS `content` property (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/content)

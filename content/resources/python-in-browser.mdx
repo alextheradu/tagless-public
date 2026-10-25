@@ -1,0 +1,73 @@
+---
+title: Python in the browser
+order: 9
+---
+
+# Python in the browser
+
+You can run real Python directly in the browser without a backend! This is great if you're more comfortable with Python than JavaScript. 
+
+There are two main tools for this: **Brython** (which is lightweight and fast to boot) and **Pyodide** (which includes the full scientific Python stack like NumPy).
+
+Here is a step-by-step guide to setting up **Brython**.
+
+### Step 1: The HTML Shell
+
+First, we need to load the Brython engine via an allowed `<script>` tag. Then, we add an `onload` event to the `<body>` to initialize it.
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <!-- 1. Load Brython engine -->
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.12.0/brython.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.12.0/brython_stdlib.js"></script>
+  </head>
+  <!-- 2. Call brython() when the page loads -->
+  <body onload="brython()">
+    <!-- 3. Write our Python code in a special script tag -->
+    <script type="text/python" src="main.py"></script>
+  </body>
+</html>
+```
+
+### Step 2: Write your Python script
+
+Now we write `main.py`. Brython provides special modules like `browser` that give Python direct access to the DOM.
+
+```python
+# main.py
+# 1. Import document and html modules from Brython's browser package
+from browser import document, html
+
+# 2. Create a Canvas element dynamically. 
+# We don't use literal HTML tags; we use Python objects!
+canvas = html.CANVAS(width=800, height=600)
+
+# 3. Append the canvas to the document. 
+# <= is Brython's clever overload for the append operation!
+document <= canvas          
+
+# 4. Get the 2D context just like we would in JS
+ctx = canvas.getContext("2d")
+
+# 5. Draw a rectangle and some text
+ctx.fillStyle = "#00b4d8"
+ctx.fillRect(50, 50, 300, 150)
+
+ctx.font = "32px sans-serif"
+ctx.fillStyle = "white"
+ctx.fillText("Python ≠ HTML", 70, 140)
+```
+
+> **Note:** A literal `<canvas>` tag is also allowed if you want to put the canvas directly in your HTML shell instead of creating it via `html.CANVAS(...)`.
+
+### What about Pyodide?
+If you want to do image processing or data visualization, **Pyodide** lets you use libraries like NumPy and Pillow. It takes longer to download the first time, but gives you an incredibly powerful Python environment directly in the browser.
+
+**Useful references:**
+- [Brython docs](https://brython.info/static_doc/en/intro.html)
+- [Brython tutorial](https://brython.info/static_tutorial/en/index.html)
+- [Pyodide docs](https://pyodide.org/en/stable/)
+- [Pyodide canvas example](https://pyodide.org/en/stable/usage/api/python-api.html)

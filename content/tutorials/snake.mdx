@@ -1,0 +1,336 @@
+---
+title: "Snake Game"
+description: "Build a Snake game with no divs and just straight canvas"
+---
+
+# Build a Snake game on canvas
+
+WE are gonna build the classic snake game using only the allowed HTML tags and the oh so great `<canvas>`. Everything is drawn out with JS elements
+
+The whole project is two files btw so no stressin.
+
+## What we're building
+
+- A 20×20 grid on a black background
+- A green snake that moves automatically
+- Red food squares to collect
+- allat normal stuff blah blah blah
+- you can preview what you're gonna make [here](https://tagless-snake.vercel.app/)
+
+The HTML is restricted to `<html>`, `<head>`, `<body>`, `<meta>`, `<title>`, `<script>`, `<style>`, and `<canvas>`.
+
+## Step 1: HTML shell
+
+Create `index.html`:
+
+```html title="index.html"
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { margin: 0; padding: 0; }
+  body { background: #000; }
+  canvas {
+    display: block;
+    margin: 0 auto;
+    border: 2px solid #fff;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script src="game.js"></script>
+</body>
+</html>
+```
+
+The page background and canvas are both black, so the white border is what shows the playing area. The canvas is the only visible thing on the screen, `game.js` handles the rest.
+
+## Step 2: Canvas and constants
+
+Create `game.js` and wire up the drawing surface:
+
+```js title="game.js"
+document.title = 'Snake';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const GRID = 20;
+const CELL = 20;
+const TICK_MS = 110;
+
+canvas.width = GRID * CELL;
+canvas.height = GRID * CELL;
+```
+
+The game logic works in **grid coordinates** (0–19 in each axis). The canvas works in **pixels**. Multiplying by `CELL` converts between them means that a 20×20 grid with 20px cells gives a 400×400 canvas.
+
+`TICK_MS` controls speed. The snake moves once every 110ms.
+
+## Step 3: Represent directions
+
+Directions are small `{ x, y }` offsets added to the head position each tick:
+
+```js
+const DIR = {
+  up:    { x: 0, y: -1 },
+  down:  { x: 0, y: 1 },
+  left:  { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+```
+
+Track two direction variables:
+
+- `direction`: applied during the current tick
+- `nextDirection`: updated by keyboard input, applied on the next tick
+
+Buffering input this way means a key press between ticks still takes effect, without letting the player reverse into themselves mid-move.
+
+## Step 4: Game state
+
+Keep everything in plain variables:
+
+```js
+let snake, direction, nextDirection, food, score, highScore, gameOver, loopId;
+```
+
+| Variable | What it holds |
+| --- | --- |
+| `snake` | Array of `{ x, y }` cells, index 0: head |
+| `food` | One `{ x, y }` cell |
+| `score` | Points , kinda obvious lol |
+| `highScore` | Best score, persisted in `localStorage` |
+| `gameOver` | Whether the loop should stop updating |
+
+## Step 5: Starting and resetting
+
+`resetGame()` puts the board in a playable state:
+
+```js
+function resetGame() {
+  const mid = Math.floor(GRID / 2);
+  snake = [
+    { x: mid, y: mid },
+    { x: mid - 1, y: mid },
+    { x: mid - 2, y: mid },
+  ];
+  direction = DIR.right;
+  nextDirection = DIR.right;
+  food = spawnFood();
+  score = 0;
+  highScore = loadHighScore();
+  gameOver = false;
+}
+```
+
+Food spawns on a random cell that isn't already occupied:
+
+```js
+function randomCell() {
+  return {
+    x: Math.floor(Math.random() * GRID),
+    y: Math.floor(Math.random() * GRID),
+  };
+}
+
+function spawnFood() {
+  let spot;
+  do {
+    spot = randomCell();
+  } while (snake.some((s) => s.x === spot.x && s.y === spot.y));
+  return spot;
+}
+```
+
+## Step 6: Drawing
+
+The canvas forgets previous frames. `draw()` clears the screen and repaints everything:
+
+```js
+function drawCell(x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+}
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawCell(food.x, food.y, '#f00');
+  snake.forEach((seg) => drawCell(seg.x, seg.y, '#0f0'));
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '14px monospace';
+  ctx.fillText(`Score: ${score}  Best: ${highScore}`, 4, 14);
+
+  if (gameOver) {
+    ctx.fillText('Game Over - press Space', 4, canvas.height - 6);
+  }
+}
+```
+
+Grid cell `(3, 5)` is a filled rectangle at `(60, 100)` (pixel pos)
+
+## Step 7: The game loop
+
+`setInterval` calls `tick` every `TICK_MS` milliseconds:
+
+```js
+function startLoop() {
+  if (loopId) clearInterval(loopId);
+  loopId = setInterval(tick, TICK_MS);
+}
+```
+
+Each tick moves the snake one cell:
+
+```js
+function tick() {
+  if (gameOver) return;
+
+  direction = nextDirection;
+  const head = snake[0];
+  const newHead = {
+    x: head.x + direction.x,
+    y: head.y + direction.y,
+  };
+
+  if (
+    newHead.x < 0 ||
+    newHead.x >= GRID ||
+    newHead.y < 0 ||
+    newHead.y >= GRID ||
+    snake.some((s) => s.x === newHead.x && s.y === newHead.y)
+  ) {
+    gameOver = true;
+    if (score > highScore) {
+      highScore = score;
+      saveHighScore(highScore);
+    }
+    draw();
+    return;
+  }
+
+  snake.unshift(newHead);
+
+  if (newHead.x === food.x && newHead.y === food.y) {
+    score += 1;
+    food = spawnFood();
+  } else {
+    snake.pop();
+  }
+
+  draw();
+}
+```
+
+The gameplay flow chart thing:
+
+1. Compute where the head should go
+2. Die if it hits a wall or the snake's own body
+3. Add the new head with `unshift`
+4. If food was eaten, grow (skip `pop`) and spawn new food; otherwise remove the tail with `pop`
+5. Redraw
+
+<Note>
+`unshift` prepends the new head. `pop` removes the tail. das what makes the snake slide forward one cell at a time.
+</Note>
+
+## Step 8: Input handling
+
+Read keyboard input and update `nextDirection`. Block 180° turns so the player can't instantly reverse into their own neck:
+
+```js
+function setDirection(dir) {
+  const opposite =
+    (direction === DIR.up && dir === DIR.down) ||
+    (direction === DIR.down && dir === DIR.up) ||
+    (direction === DIR.left && dir === DIR.right) ||
+    (direction === DIR.right && dir === DIR.left);
+  if (!opposite) nextDirection = dir;
+}
+
+document.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+
+  if (key === 'arrowup' || key === 'w') setDirection(DIR.up);
+  else if (key === 'arrowdown' || key === 's') setDirection(DIR.down);
+  else if (key === 'arrowleft' || key === 'a') setDirection(DIR.left);
+  else if (key === 'arrowright' || key === 'd') setDirection(DIR.right);
+  else if (key === ' ' || key === 'enter') {
+    if (gameOver) {
+      resetGame();
+      startLoop();
+    }
+  }
+
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
+    e.preventDefault();
+  }
+});
+```
+
+
+## Step 9: High score persistence
+
+Save the best run to `localStorage`:
+
+```js
+function loadHighScore() {
+  try {
+    return Number(localStorage.getItem('snake-high-score')) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveHighScore(value) {
+  try {
+    localStorage.setItem('snake-high-score', String(value));
+  } catch {
+    /* storage unavailable */
+  }
+}
+```
+
+The `try/catch` covers private browsing and blocked storage.
+
+## Step 10: Start the game
+
+Add these three lines at the bottom of `game.js`:
+
+```js
+resetGame();
+draw();
+startLoop();
+```
+
+That initializes state, paints the first frame, and starts the loop.
+
+## Running it
+
+Serve the folder locally:
+
+```bash
+python3 -m http.server 8000
+```
+
+Open `http://localhost:8000`.
+
+YAYAYAYYA YOU DID IT!!!!
+:D
+
+
+
+## Ideas to extend
+
+- Increase speed as the score climbs
+- Draw faint grid lines between cells
+- Add a pause toggle
+- Wrap edges instead of wall death
+- Color the head differently from the body
+- Show a start screen before the loop begins

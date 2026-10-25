@@ -1,0 +1,82 @@
+---
+title: SVG via JavaScript
+order: 11
+---
+
+# SVG via JavaScript
+
+Scalable Vector Graphics (SVG) are mathematically defined shapes. Under the hood, SVG elements are XML, not HTML tags. While you can't write `<svg>` or `<circle>` in your HTML file, you *can* build an entire SVG scene dynamically using JavaScript!
+
+Here is a step-by-step guide to generating an SVG without any tags.
+
+### Step 1: The Namespace Helper
+
+Because SVGs use a different XML namespace than standard HTML, we can't just use `document.createElement`. We must use `document.createElementNS`. 
+
+Let's write a small helper function to make this easier:
+
+```js
+// 1. Define the official SVG namespace string
+const NS = "http://www.w3.org/2000/svg";
+
+// 2. Create a helper function that generates an element and applies attributes
+function el(tag, attrs) {
+  // We use createElementNS instead of createElement!
+  const node = document.createElementNS(NS, tag);
+  
+  // Loop through the attributes object and set them on the node
+  for (const [k, v] of Object.entries(attrs)) {
+    node.setAttribute(k, v);
+  }
+  return node;
+}
+```
+
+### Step 2: Build the SVG Canvas
+
+Now we use our helper to create the main `<svg>` container.
+
+```js
+// Create the SVG container, making it take up the full screen
+const svg = el("svg", { 
+  width: "100vw", 
+  height: "100vh", 
+  viewBox: "0 0 800 600" 
+});
+```
+
+### Step 3: Draw Shapes and Text
+
+Let's add a background rectangle, a circle, and some text to our SVG.
+
+```js
+// 1. Draw a dark blue background rectangle
+svg.appendChild(el("rect", { width: "800", height: "600", fill: "#1a1a2e" }));
+
+// 2. Draw a pinkish-red circle in the center
+svg.appendChild(el("circle", { cx: "400", cy: "300", r: "120", fill: "#e94560" }));
+
+// 3. Add some text on top
+const text = el("text", { 
+  x: "400", 
+  y: "310", 
+  "text-anchor": "middle", 
+  fill: "white", 
+  "font-size": "32" 
+});
+text.textContent = "SVG, no disallowed HTML";
+svg.appendChild(text);
+```
+
+### Step 4: Mount to the DOM
+
+Finally, we just append the whole SVG object to our allowed `<body>` tag.
+
+```js
+document.body.appendChild(svg);
+```
+
+**Useful references:**
+- [MDN SVG tutorial](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial)
+- [SVG path editor](https://yqnn.github.io/svg-path-editor/) - helpful for building complex shapes
+- [Snap.svg](http://snapsvg.io/) - library for JS-driven SVG animation

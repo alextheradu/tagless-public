@@ -1,0 +1,332 @@
+---
+title: "Click Counter"
+description: "Build a Click Counter with React, no JSX, no divs, just canvas"
+---
+
+# Build a Click Counter with React, the weird way
+
+Most click counter tutorials use a normal button. This one does not: no `<div>`, no `<button>`, no JSX, no build tools. Just React, a `<canvas>`, and some 2D drawing code.
+
+Why do it this way? Because it makes React feel less magical. You still use state and events, but you draw the UI yourself. By the end of this tutorial, you won't just have a working app, you'll understand exactly how React mounts, how state triggers redraws, and how the browser handles events under the hood.
+
+## What we're building
+
+A page with:
+- A title ("Click Counter")
+- A number that starts at 0
+- A drawn button you can click
+- Every click bumps the number by 1
+
+Here's the catch: the HTML file can only use `<html>`, `<head>`, `<body>`, `<meta>`, `<title>`, `<script>`, `<style>`, and `<canvas>`. No `<button>`, no `<div>`, no `<h1>`. Anything visible gets *drawn*, not laid out.
+
+## Step 1: The bare HTML shell
+
+> [!IMPORTANT]
+> **Code Change Step:** Create `index.html` and add the following code.
+
+Instead of running `npm install` and setting up a bundler like Webpack or Vite, we are going to load React directly from a CDN. This is how web development used to work, and it's perfect for a tagless setup.
+
+```html title="index.html"
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <style>
+    /* 1. We remove all default browser margins */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #1e1e2e;
+    }
+    
+    /* 2. We make the canvas a block element and center it */
+    canvas {
+      display: block;
+      margin: 0 auto;
+      cursor: pointer; /* This makes the mouse look like a clicking hand! */
+    }
+  </style>
+
+  <!-- 3. Load the React engine -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+  <!-- 4. Load our custom app logic -->
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+**What does this code actually mean?**
+- **The CDN Links:** We are loading the "UMD" (Universal Module Definition) build of React. This means React won't require `import` statements. Instead, the browser will attach `React` and `ReactDOM` to the global `window` object, making them available everywhere.
+- **The Order:** Notice that `app.js` is loaded at the very bottom of the `<body>`. This guarantees that the browser has finished loading the React scripts and parsing the HTML before it tries to run our custom code.
+
+## Step 2: Why no JSX?
+
+> [!NOTE]
+> **Learning Step:** No code changes required. Just read to understand the architecture!
+
+Normally, React code looks like this:
+
+```jsx
+function App() {
+  return <h1 className="title">Hello</h1>;
+}
+```
+
+That `<h1>` tag inside JavaScript is called **JSX**. But browsers don't understand JSX natively! Normally, a build tool (like Babel) intercepts your code and translates it before sending it to the browser. Since this project has **no build step**, JSX is out.
+
+So what does Babel actually translate it into? It turns it into standard JavaScript:
+
+```js
+React.createElement('h1', { className: 'title' }, 'Hello')
+```
+
+In this tutorial, we will skip the middleman and write the `React.createElement` functions ourselves! 
+
+## Step 3: One canvas element
+
+> [!IMPORTANT]
+> **Code Change Step:** Create `app.js` and set up the main React component.
+
+Since we can't use `<button>` or `<div>`, our entire application is going to be rendered inside a single `<canvas>` element. We will tell React to create this canvas for us.
+
+```js title="app.js"
+// 1. Extract the hooks we need from the global React object
+const { useState, useRef, useEffect, useCallback } = React;
+
+const WIDTH = 600;
+const HEIGHT = 400;
+
+function App() {
+  // 2. Create a reference to hold onto our canvas element
+  const canvasRef = useRef(null);
+
+  // 3. Tell React to create a <canvas> tag
+  return React.createElement('canvas', {
+    ref: canvasRef,
+    width: WIDTH,
+    height: HEIGHT,
+  });
+}
+```
+
+**What does this code actually mean?**
+- **`useRef`:** This hook gives us a way to directly access the raw DOM element. Later on, we will need to grab the actual `<canvas>` off the screen to draw on it. Passing `ref: canvasRef` inside `createElement` tells React: *"Hey, once you put this canvas on the screen, save a link to it inside my `canvasRef` variable."*
+- **`React.createElement`:** The first argument is the tag name (`'canvas'`). The second argument is an object containing the "props" (properties like width and height). 
+
+## Step 4: Mounting without a wrapper `<div>`
+
+> [!IMPORTANT]
+> **Code Change Step:** Add this to the very bottom of `app.js`.
+
+Now that we have an `App` component, we need to tell React to inject it into the webpage. 
+
+```js
+// Tell ReactDOM to take over the <body> tag and render our App inside it
+ReactDOM.createRoot(document.body).render(React.createElement(App));
+```
+
+**What does this code actually mean?**
+Most React tutorials have a `<div id="root"></div>` in their HTML and mount to that. Since we can't use `<div>` tags, we simply hand React the `document.body` element directly. `createRoot` sets up the React engine, and `render` tells it what component to start with.
+
+## Step 5: Drawing the UI
+
+> [!IMPORTANT]
+> **Code Change Step:** Add this rendering logic above your `App` component in `app.js`.
+
+The `<canvas>` element doesn't know what a button or a title is. It only understands pixels, shapes, and colors. We need to write a function that manually draws our entire interface from scratch.
+
+```js
+const BUTTON = { x: WIDTH / 2 - 100, y: 190, w: 200, h: 70 };
+
+function drawScene(ctx, count, hover, pressed) {
+  // 1. Erase the entire canvas so we can draw a fresh frame
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+  // 2. Draw the background
+  ctx.fillStyle = '#1e1e2e';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // 3. Draw the title text
+  ctx.fillStyle = '#cdd6f4';
+  ctx.font = 'bold 32px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Click Counter', WIDTH / 2, 60);
+
+  // 4. Draw the number (the current count)
+  ctx.font = '48px sans-serif';
+  ctx.fillStyle = '#f5e0dc';
+  ctx.fillText(String(count), WIDTH / 2, 130);
+
+  // 5. Draw the button background
+  // We use paths to draw a rounded rectangle
+  const radius = 14;
+  const { x, y, w, h } = BUTTON;
+  
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+
+  // Change color based on interaction state
+  ctx.fillStyle = pressed ? '#89b4fa' : hover ? '#a6adc8' : '#cdd6f4';
+  ctx.fill();
+
+  // 6. Draw the button text
+  ctx.fillStyle = '#11111b';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('Click me', x + w / 2, y + h / 2);
+}
+```
+
+**What does this code actually mean?**
+- **`ctx` (The Context):** This is the object that holds all the drawing tools for the canvas. 
+- **`clearRect`:** This is incredibly important. In a canvas, drawing over something doesn't delete what was underneath. If we don't clear the canvas every frame, the text would smear and stack on top of itself!
+- **State-Driven Rendering:** Notice that `drawScene` doesn't save any data. It takes in `count`, `hover`, and `pressed` as arguments, draws the screen, and forgets about them. If the user clicks, we have to call this function again with new arguments.
+
+## Step 6: State with Hooks
+
+> [!IMPORTANT]
+> **Code Change Step:** Update your `App` function to include state and an effect.
+
+Now we need to keep track of our data and tell the canvas to redraw whenever that data changes.
+
+```js
+function App() {
+  const canvasRef = useRef(null);
+
+  // 1. Define our state variables
+  const [count, setCount] = useState(0);
+  const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
+
+  // 2. Synchronize our React state with the Canvas drawing
+  useEffect(() => {
+    // Grab the 2D drawing tools from our canvas element
+    const ctx = canvasRef.current.getContext('2d');
+    
+    // Draw the scene using our current state variables!
+    drawScene(ctx, count, hover, pressed);
+    
+  // 3. The Dependency Array
+  }, [count, hover, pressed]);
+
+  return React.createElement('canvas', {
+    ref: canvasRef,
+    width: WIDTH,
+    height: HEIGHT,
+  });
+}
+```
+
+**What does this code actually mean?**
+- **`useState`:** This hook tells React to remember a value between renders. It returns an array with two things: the current value (`count`), and a function to update it (`setCount`).
+- **`useEffect`:** This hook tells React: *"After you put the `<canvas>` on the screen, run this code block."* 
+- **The Dependency Array (`[count, hover, pressed]`):** This array at the end of the `useEffect` tells React exactly *when* to re-run the drawing function. If none of these three variables have changed since the last frame, React won't waste CPU power redrawing the canvas.
+
+## Step 7: Detecting clicks on a shape that doesn't exist
+
+> [!IMPORTANT]
+> **Code Change Step:** Add this helper math inside `app.js` above the `App` component.
+
+Because we didn't use a real `<button>` tag, the browser has no idea our rectangle is supposed to be clickable. We have to detect mouse clicks globally on the canvas, and use math to figure out if the mouse was hovering over our drawn rectangle. This is called **hit-testing**.
+
+```js
+// 1. Check if an (x, y) coordinate falls inside our button boundaries
+function pointInButton(x, y) {
+  return (
+    x >= BUTTON.x &&
+    x <= BUTTON.x + BUTTON.w &&
+    y >= BUTTON.y &&
+    y <= BUTTON.y + BUTTON.h
+  );
+}
+```
+
+This math is simple: it checks if the mouse's X coordinate is between the button's left and right edges, and if the Y coordinate is between the top and bottom edges.
+
+## Step 8: Wiring up mouse events
+
+> [!IMPORTANT]
+> **Code Change Step:** Add these callbacks inside your `App` function, before the `return` statement. You also need to pass them to `createElement`.
+
+We need to listen to the mouse moving, clicking down, and clicking up.
+
+```js
+  // 1. Convert global browser coordinates to canvas-specific coordinates
+  const getPos = useCallback((e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }, []);
+
+  // 2. Handle Mouse Movement (Hover State)
+  const onMouseMove = useCallback((e) => {
+    const { x, y } = getPos(e);
+    setHover(pointInButton(x, y));
+  }, [getPos]);
+
+  // 3. Handle Mouse Down (Pressed State)
+  const onMouseDown = useCallback((e) => {
+    const { x, y } = getPos(e);
+    if (pointInButton(x, y)) setPressed(true);
+  }, [getPos]);
+
+  // 4. Handle Mouse Up (The actual "Click")
+  const onMouseUp = useCallback((e) => {
+    const { x, y } = getPos(e);
+    
+    // Only register a click if they pressed down ON the button, 
+    // and also released ON the button!
+    if (pressed && pointInButton(x, y)) {
+      setCount((c) => c + 1);
+    }
+    setPressed(false);
+  }, [getPos, pressed]);
+```
+
+**Don't forget to update your `createElement` call to use these new functions!**
+```js
+  return React.createElement('canvas', {
+    ref: canvasRef,
+    width: WIDTH,
+    height: HEIGHT,
+    onMouseMove: onMouseMove,
+    onMouseDown: onMouseDown,
+    onMouseUp: onMouseUp,
+  });
+```
+
+**What does this code actually mean?**
+- **`getBoundingClientRect`:** A mouse click gives us coordinates relative to the entire browser window (e.g. `e.clientX`). But our canvas might be centered or offset. This function calculates where the canvas actually is on the screen so we can subtract that offset and get the *true* X and Y coordinates inside the canvas.
+- **`useCallback`:** Every time React updates the state (like when `count` changes), it re-runs the `App` function. `useCallback` wraps our event listeners so that React doesn't accidentally delete and recreate them from scratch every single frame. It caches the functions to save memory.
+- **`setCount((c) => c + 1)`:** Notice we didn't write `setCount(count + 1)`. By passing a function into `setCount`, React guarantees we are adding 1 to the most recent, freshest version of the state, preventing race conditions.
+
+## Step 9: Running it
+
+> [!IMPORTANT]
+> **Action Required:** Run the server to see your work!
+
+Because we didn't use a build tool or JSX, we don't need `npm start` or Webpack. You just need a basic web server to serve the static files.
+
+Open your terminal in the folder where your files are and run:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000` in a browser. That's it!
+
+## Ideas to extend this
+
+- Add a "Reset" drawn button next to the counter
+- Save `count` to `localStorage` so it survives a page reload
+- Add a little scale/bounce animation on click using `requestAnimationFrame`

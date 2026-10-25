@@ -1,0 +1,61 @@
+---
+title: React without JSX
+order: 6
+---
+
+# React without JSX
+
+In Tagless, using JSX (e.g. `<div className="app">`) is banned because it compiles to HTML-like syntax that violates the rules. However, React itself is just a JavaScript library! Under the hood, JSX gets compiled into `React.createElement` calls, which are plain JavaScript and perfectly allowed.
+
+Here is a step-by-step guide to using React without JSX.
+
+### Step 1: Use `React.createElement`
+
+Instead of writing tags, we call `React.createElement(type, props, ...children)`.
+
+```js
+import React from "react";
+import { createRoot } from "react-dom/client";
+
+// 1. Let's create an app container with a heading and a paragraph.
+// Notice how the first argument is the tag name as a string, 
+// the second is the props (like style or className), and the rest are children.
+const app = React.createElement(
+  "div",
+  { style: { fontFamily: "sans-serif", padding: "2rem" } },
+  React.createElement("h1", { style: { color: "#e94560" } }, "Tagless React"),
+  React.createElement("p", null, "No JSX in sight.")
+);
+```
+
+### Step 2: Render to the DOM
+
+Once you have your React elements, you mount them to the DOM just like a normal React app.
+
+```js
+// 2. Find a root element (you can create this via document.createElement or just use the body)
+const root = createRoot(document.getElementById("root"));
+
+// 3. Render the app
+root.render(app);
+```
+
+### Step 3: Create a Shorthand (Optional but Recommended)
+
+Writing `React.createElement` over and over gets tedious and hard to read. You can create a shorthand alias (commonly `h`, for hyperscript) to reduce the noise.
+
+```js
+// Alias createElement to a short variable name
+const h = React.createElement;
+
+// Now your components look much cleaner!
+const App = () =>
+  h("main", { className: "container" },
+    h("h1", null, "Hello"),
+    h("p", null, "Still no tags in the source.")
+  );
+```
+
+**Useful references:**
+- [React without JSX (official docs)](https://react.dev/reference/react/createElement)
+- [htm](https://github.com/developit/htm) - tagged template literals that compile to `createElement` calls, no build step needed

@@ -1,0 +1,89 @@
+---
+title: WebGL / Three.js
+order: 5
+---
+
+# WebGL / Three.js
+
+WebGL is an API that allows you to render interactive 2D and 3D graphics directly to a canvas using the GPU. While you can write raw WebGL, it requires a lot of low-level math. **Three.js** wraps WebGL in a much friendlier API.
+
+Here is a step-by-step guide to setting up a 3D spinning cube using Three.js without writing any disallowed HTML.
+
+### Step 1: Initialize the Renderer
+The renderer is the engine that actually draws your 3D scene onto a 2D canvas.
+
+```js
+import * as THREE from "three";
+
+// 1. Create the WebGL renderer
+const renderer = new THREE.WebGLRenderer();
+
+// 2. Make it take up the whole screen
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// 3. Attach it to the document. 
+// Why? Three.js automatically creates a <canvas> element behind the scenes. 
+// We append it to the body so we can see it!
+document.body.appendChild(renderer.domElement); 
+```
+
+### Step 2: Set up the Scene and Camera
+A Scene is the 3D world where you place objects, and the Camera acts as the eyes through which you see that world.
+
+```js
+// 1. Create an empty scene
+const scene = new THREE.Scene();
+
+// 2. Set up a Perspective Camera (Field of View, Aspect Ratio, Near plane, Far plane)
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+// 3. Move the camera back on the Z axis so we can see the center of the scene.
+// By default, objects are created at (0, 0, 0), so if we don't move the camera, we'd be inside the cube!
+camera.position.z = 5;
+```
+
+### Step 3: Add an Object and Lights
+Let's add a green cube and some lighting so we can see its 3D form.
+
+```js
+// 1. Define the geometry (the shape)
+const geometry = new THREE.BoxGeometry();
+
+// 2. Define the material (the skin). StandardMaterial reacts to light!
+const material = new THREE.MeshStandardMaterial({ color: 0x00ff88 });
+
+// 3. Combine them into a Mesh and add it to the scene
+const cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
+
+// 4. Add Ambient Light (soft light everywhere)
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+// 5. Add a Directional Light (like the sun) to create shadows and highlights
+scene.add(new THREE.DirectionalLight(0xffffff, 1));
+```
+
+### Step 4: The Animation Loop
+To make the cube spin, we need an animation loop that updates the rotation and re-renders the scene every frame.
+
+```js
+function animate() {
+  // Request the browser to call this function on the next screen repaint
+  requestAnimationFrame(animate);
+
+  // Rotate the cube a tiny bit on each frame
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
+
+  // Render the scene!
+  renderer.render(scene, camera);
+}
+
+// Kick off the animation loop
+animate();
+```
+
+**Useful references:**
+- [Three.js docs](https://threejs.org/docs/) - start with the "Getting Started" guide
+- [Three.js journey](https://threejs-journey.com/) - comprehensive free lessons
+- [Raw WebGL fundamentals](https://webglfundamentals.org/) - if you want low-level GPU control without a library

@@ -1,0 +1,82 @@
+---
+title: Canvas API
+order: 4
+---
+
+# Canvas API
+
+The `<canvas>` element is a powerful tool for Tagless. Because the `<canvas>` tag is strictly allowed, you can write a tiny HTML shell with only the permitted tags, and then do all of your rendering in JavaScript.
+
+Here is a step-by-step guide to setting up and using the Canvas API in a Tagless project.
+
+### Step 1: Create the HTML Shell
+
+First, we need to create a minimal HTML file that sets up our canvas. We're only using allowed tags here: `<html>`, `<head>`, `<body>`, `<meta>`, `<title>`, `<style>`, and `<script>`. 
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      /* We remove margins and hide overflow to make the canvas fill the entire screen */
+      html, body { margin: 0; height: 100%; overflow: hidden; }
+      /* We set the canvas to block display and take up 100% of the viewport width and height */
+      canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <!-- The canvas tag is allowed! We give it an ID so we can reference it in JS -->
+    <canvas id="app"></canvas>
+    <!-- Load our JavaScript file as a module -->
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
+```
+
+### Step 2: Initialize the Canvas in JavaScript
+
+In your `main.js` file, the first step is to grab the canvas element and ensure its internal resolution matches the screen size. If we don't do this, the canvas will look blurry or stretched!
+
+```js
+// 1. Get the canvas element from the DOM
+const canvas = document.getElementById("app");
+
+// 2. Set the canvas's internal drawing buffer to match the window's physical size.
+// Why? This prevents the canvas from stretching its default 300x150 size to fit the screen.
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// 3. Get the 2D rendering context. This 'ctx' object gives us all the drawing tools.
+const ctx = canvas.getContext("2d");
+```
+
+### Step 3: Draw on the Canvas
+
+Now that our canvas is perfectly sized and we have our context (`ctx`), we can start drawing!
+
+```js
+// Fill the entire background with a dark blue color
+ctx.fillStyle = "#1a1a2e"; 
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Set up the font styles for our text
+ctx.font = "bold 48px sans-serif";
+ctx.fillStyle = "#e94560"; // A bright pinkish-red
+ctx.textAlign = "center";
+
+// Draw the text exactly in the center of the screen
+ctx.fillText("Hello, tagless!", canvas.width / 2, canvas.height / 2);
+```
+
+> **Note:** `document.createElement("canvas")` is also fine if you prefer to create the canvas entirely in JS instead of the HTML file. The key is that the only literal HTML tags in your source are the allowed ones.
+
+### Useful References
+- [MDN Canvas API tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial)
+- [MDN CanvasRenderingContext2D](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D) - every drawing method
+- [Excalidraw source](https://github.com/excalidraw/excalidraw) - large real-world canvas app for inspiration
+
+### Pro Tips
+- **Animation:** Use `requestAnimationFrame` for smooth animation loops instead of `setInterval` or `setTimeout`.
+- **State Management:** `ctx.save()` and `ctx.restore()` let you scope transform/style changes so they don't accidentally apply to everything else you draw.
+- **Interactivity:** For interaction, you'll need to draw your own custom buttons or controls on the canvas and listen for global pointer/keyboard events to detect when the user clicks on them.

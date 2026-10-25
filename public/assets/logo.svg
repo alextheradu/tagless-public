@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 140" fill="none">
+  
+
+  <g transform="translate(8, 18)">
+    
+    <path d="M 28 0 L 340 0 Q 348 0 348 8 L 348 96 Q 348 104 340 104 L 28 104 Q 22 104 18 100 L -8 64 Q -12 58 -8 52 L 18 8 Q 22 0 28 0 Z" fill="#fbf3e3" stroke="#1a1729" stroke-width="3" stroke-linejoin="round"></path>
+    
+    <circle cx="10" cy="56" r="6" fill="#1a1729"></circle>
+    <circle cx="10" cy="56" r="2.5" fill="#fbf3e3"></circle>
+
+    
+    <path d="M 10 56 Q -10 40 -22 30" stroke="#1a1729" stroke-width="2.5" stroke-linecap="round" fill="none"></path>
+
+    
+    <g transform="translate(38, 30)">
+      <text x="0" y="50" font-family="JetBrains Mono, monospace" font-size="46" font-weight="700" fill="#1a1729" opacity="0.32">&lt;/&gt;</text>
+      <line x1="-4" y1="48" x2="80" y2="14" stroke="#ff2d6f" stroke-width="4" stroke-linecap="round"></line>
+    </g>
+
+    
+    <text x="138" y="74" font-family="Instrument Serif, serif" font-style="italic" font-size="64" fill="#1a1729">tagless</text>
+  </g>
+</svg>

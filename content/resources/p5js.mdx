@@ -1,0 +1,57 @@
+---
+title: p5.js
+order: 10
+---
+
+# p5.js
+
+p5.js is a creative-coding library designed to make drawing and animation easy. It manages its own canvas, so you don't need any disallowed HTML to use it!
+
+Here is a step-by-step guide to setting up p5.js in a Tagless project.
+
+### Step 1: Initialize p5 in Instance Mode
+
+Normally, p5.js runs in "Global Mode" where functions like `setup()` and `draw()` are in the global scope. In a modern JavaScript setup, we use "Instance Mode" to keep everything contained.
+
+```js
+import p5 from "p5";
+
+// We create a new p5 instance and pass it a sketch function.
+// The 'sketch' variable gives us access to all p5 functions (like sketch.fill, sketch.ellipse).
+new p5(function (sketch) {
+  
+  // This runs once when the sketch starts
+  sketch.setup = function () {
+    // 1. Create a canvas that fills the window
+    // p5 creates the <canvas> element for you and attaches it to the DOM!
+    sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
+    
+    // 2. Set the background to a dark grey
+    sketch.background(30);
+  };
+
+  // This runs continuously in a loop, giving us animation
+  sketch.draw = function () {
+    // 1. Pick a random color for the fill
+    sketch.fill(sketch.random(255), sketch.random(255), sketch.random(255));
+    
+    // 2. Disable the outline stroke
+    sketch.noStroke();
+    
+    // 3. Draw a circle at the current mouse position, with a random size
+    sketch.ellipse(
+      sketch.mouseX,
+      sketch.mouseY,
+      sketch.random(10, 60)
+    );
+  };
+});
+```
+
+### Why p5.js?
+If you're building generative art, simple games, or just want to get graphics on the screen quickly without writing raw WebGL or dealing with the boilerplate of the Canvas API, p5.js is an incredible choice.
+
+**Useful references:**
+- [p5.js reference](https://p5js.org/reference/)
+- [The Coding Train](https://thecodingtrain.com/) - video tutorials for creative coding with p5.js
+- [p5.js examples gallery](https://p5js.org/examples/)

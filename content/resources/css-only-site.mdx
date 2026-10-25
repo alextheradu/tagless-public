@@ -1,0 +1,559 @@
+---
+title: building a whole site in CSS
+order: 10
+---
+
+# building a whole site in CSS
+
+The [pseudo-elements page](/docs/resources/css-pseudo-elements) shows how to get a heading and a shape onto an empty `<body>`. This page is the rest of the toolbox: where more text comes from, how to get more boxes than two, how to do images, layout, hover effects, and animation, all without writing a single tag.
+
+Everything here works in a file that looks like this, with an empty body:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>my site</title>
+    <style>
+      /* everything goes here */
+    </style>
+  </head>
+  <body></body>
+</html>
+```
+
+## where do boxes come from?
+
+`body::before` and `body::after` only get you two boxes. You can get about ten by making the elements in `<head>` visible. Browsers hide them with `display: none`, but that is just a default, and you can override it.
+
+```css
+head, title, style, script { display: block; }
+```
+
+Now all of these can render:
+
+- `html::before` and `html::after`
+- `head::before` and `head::after`
+- `title`, `title::before`, `title::after`
+- `style`, `style::before`, `style::after`
+- `script`, `script::before`, `script::after`
+- `body::before` and `body::after`
+
+> [!IMPORTANT]
+> `head` has to be `display: block` (or anything not `none`) for its children to show up. If a child is missing, check that first.
+
+> [!WARNING]
+> `style` and `script` also render their own contents, which means your raw CSS shows up on the page. Hide it with `style { font-size: 0; line-height: 0; }` and then set a real `font-size` on `style::before` and `style::after`, because pseudo-elements inherit.
+
+Order on the page follows the document: `html::before`, then `head::before`, then whatever is inside head in the order you wrote it, then `head::after`, then `body::before`, `body::after`, and last `html::after`.
+
+## text
+
+### the content property
+
+`content` takes a string, and you can chain several values together.
+
+```css
+body::before {
+  content: "hello " "world";
+  display: block;
+}
+```
+
+Remember `display: block`. Pseudo-elements are `inline` by default, so margin, width, and height do nothing until you change it.
+
+### line breaks and spacing
+
+A `\A` in a string is a newline, but it only shows up if you tell the box to keep it. Use `white-space: pre-line` to keep newlines but still collapse extra spaces, or `pre-wrap` to keep both.
+
+```css
+body::before {
+  content: "line one\A line two\A line three";
+  white-space: pre-line;
+  display: block;
+}
+```
+
+If you want padded columns with spaces, use `white-space: pre`.
+
+### special characters
+
+Use a backslash and the hex code for anything you cannot type. Emoji can just be pasted in.
+
+```css
+body::after {
+  content: "next \2192  \2022  done \2713";
+}
+```
+
+### attr(): pull text from attributes
+
+The rules restrict tags, not attributes, so you can hang data on `<body>` or `<html>` and read it back in CSS.
+
+```html
+<body data-name="alex"></body>
+```
+
+```css
+body::before {
+  content: "hi, i'm " attr(data-name);
+}
+```
+
+> [!NOTE]
+> This is handy if you want your content in one obvious place instead of scattered across a stylesheet. Check the [rules](/docs/rules) if you are unsure about your specific use.
+
+### counters
+
+Counters number things for you. Each pseudo-element can bump the counter and print it.
+
+```css
+html { counter-reset: n; }
+
+style::after, body::before, body::after {
+  counter-increment: n;
+}
+
+style::after { content: counter(n, decimal-leading-zero) " first"; }
+body::before { content: counter(n, decimal-leading-zero) " second"; }
+body::after  { content: counter(n, decimal-leading-zero) " third"; }
+```
+
+That prints `01 first`, `02 second`, `03 third`, in document order. You can also use `lower-roman`, `upper-alpha`, and other styles as the second argument.
+
+### quotes
+
+```css
+body::before {
+  quotes: "\201C" "\201D";
+  content: open-quote "text in curly quotes" close-quote;
+}
+```
+
+### use the title for real text
+
+Text inside `content` cannot be selected, copied, or searched with ctrl+f in most browsers. The `<title>` is real text, so once you make it `display: block` you get a heading that people can actually select, and screen readers see it. Put your most important text there.
+
+```css
+title {
+  display: block;
+  font: 800 4rem/1 system-ui, sans-serif;
+}
+```
+
+> [!TIP]
+> The catch is that the visible text is always the same as the tab title.
+
+### text effects
+
+These all work on real elements like `title` and on pseudo-elements.
+
+```css
+/* gradient text */
+title {
+  background: linear-gradient(90deg, #ff6b4a, #ffd166);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* outlined text */
+body::before {
+  -webkit-text-stroke: 2px white;
+  color: transparent;
+}
+
+/* glow */
+body::before { text-shadow: 0 0 20px #ff6b4a; }
+
+/* nicer wrapping on headings */
+title { text-wrap: balance; }
+```
+
+Some real-element-only selectors are worth knowing too:
+
+```css
+title::first-letter { font-size: 1.5em; color: tomato; }   /* drop cap */
+body::first-line { letter-spacing: 0.1em; }
+::selection { background: #ff6b4a; color: black; }
+```
+
+> [!NOTE]
+> `::first-letter` and `::first-line` do not work on `::before` or `::after` (you cannot nest pseudo-elements), so apply them to `title`, `body`, or `html`.
+
+### fonts
+
+`@import` is CSS, not a tag, so it works for web fonts.
+
+> [!IMPORTANT]
+> `@import` has to be the very first thing in your stylesheet, before any other rule.
+
+```css
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap");
+
+title { font-family: "Space Grotesk", sans-serif; }
+```
+
+If you would rather not depend on an outside site, base64 a font file into an `@font-face` with `src: url(data:font/woff2;base64,...)`.
+
+## images and shapes
+
+### images without an img tag
+
+`content` also accepts `url()`. A data URI SVG means you can draw icons and logos with no file and no tag. Use single quotes inside the SVG, and write `#` as `%23`.
+
+```css
+html::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%23ff6b4a'/%3E%3C/svg%3E") "  built with no tags";
+  display: block;
+}
+```
+
+An image followed by a string sits inline with the text, which is good for footers and buttons. For a big image on its own, set it as a `background-image` on an empty box instead, because that is much easier to size.
+
+```css
+body::after {
+  content: "";
+  display: block;
+  width: 300px;
+  height: 200px;
+  background: url("data:image/svg+xml,...") center / contain no-repeat;
+}
+```
+
+### shapes from gradients
+
+A gradient is an image, and you can stack as many as you want on one box.
+
+```css
+body::after {
+  content: "";
+  display: block;
+  height: 240px;
+  background:
+    radial-gradient(circle at 30% 40%, #ffd166 0 12%, transparent 13%),
+    conic-gradient(from 200deg at 60% 60%, #ff6b4a, #7b2cbf, #ff6b4a),
+    linear-gradient(#12101a, #3a1c71);
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+}
+```
+
+Other tools that turn a plain box into something interesting: `border-radius`, `clip-path`, `mask-image`, `filter`, `backdrop-filter`, and `mix-blend-mode`.
+
+### pixel art with box-shadow
+
+One 1px box plus a list of shadows gives you a pixel per shadow. This is how most single-element art works. Scale it up with `transform`.
+
+```css
+body::after {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 1px;
+  background: #ff6b4a;
+  box-shadow:
+    1px 0 #ff6b4a,
+    2px 0 #ffd166,
+    0 1px #ffd166,
+    1px 1px #ff6b4a,
+    2px 1px #ffd166;
+  transform: scale(16);
+  transform-origin: 0 0;
+  margin-bottom: 5rem;
+}
+```
+
+Check out [A Single Div](https://a.singlediv.com/) for how far this goes.
+
+## layout
+
+Pseudo-elements are real flex and grid items of their parent, so normal layout works.
+
+```css
+body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  max-width: 50rem;
+  margin: 0 auto;
+}
+
+body::before, body::after {
+  padding: 1.5rem;
+  background: #ffffff10;
+  border-radius: 12px;
+}
+
+body::before { content: "left column"; }
+body::after  { content: "right column"; }
+
+@media (max-width: 600px) {
+  body { grid-template-columns: 1fr; }
+}
+```
+
+For a nav bar that stays put, pin one of the boxes.
+
+```css
+head::before {
+  content: "about  /  work  /  contact";
+  white-space: pre;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem 1.5rem;
+  backdrop-filter: blur(8px);
+}
+```
+
+`clamp()`, `vw`, and `rem` units do most of the work for responsive text and spacing, so you need fewer media queries than you think.
+
+Respect the user's settings while you are at it:
+
+```css
+@media (prefers-color-scheme: light) {
+  :root { --bg: #faf7f2; --fg: #12101a; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+}
+```
+
+## interaction
+
+### hover
+
+You cannot hover a pseudo-element by itself, so hover the real element and style the pseudo-element from there.
+
+```css
+body:hover::after { color: tomato; }
+
+/* title is followed by style in the head, so + works */
+title:hover + style::before { color: tomato; }
+
+/* :has() lets you reach anywhere from a hover */
+html:has(title:hover) body::before { transform: translateX(1rem); }
+```
+
+`:hover`, `:active`, `:focus-within`, and `:has()` cover a lot of ground on their own.
+
+### a little JavaScript
+
+`<script>` is allowed, so you can toggle a class on `document.body` or `document.documentElement` and let CSS react to it. Since pseudo-elements cannot receive events, put the listener on `body` or `window`, and use the click position if you need to know where it landed.
+
+```js
+addEventListener("click", () => {
+  document.documentElement.classList.toggle("dark");
+});
+```
+
+```css
+html.dark { --bg: #000; --fg: #fff; }
+```
+
+When CSS runs out of boxes, look at [Canvas](/docs/resources/canvas-api), [SVG via JavaScript](/docs/resources/svg-via-javascript), and [React without JSX](/docs/resources/react-without-jsx).
+
+## animation
+
+### keyframes
+
+Anything you can style, you can animate.
+
+```css
+body::after {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  50% { transform: translateY(-12px); }
+}
+```
+
+### typewriter
+
+Use a monospace font so `ch` units match the letters, then reveal the box with `steps()`.
+
+```css
+body::before {
+  content: "hello, world. no tags here.";
+  display: block;
+  width: 28ch;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid;
+  font: 1.25rem/1.6 ui-monospace, monospace;
+  animation: type 3s steps(28) both, blink 0.7s step-end infinite;
+}
+
+@keyframes type  { from { width: 0; } }
+@keyframes blink { 50% { border-color: transparent; } }
+```
+
+### number counting up
+
+`@property` lets you animate a number, and a counter can print it. This gives you a live counter with zero JavaScript.
+
+```css
+@property --n {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: false;
+}
+
+body::before {
+  counter-reset: num var(--n);
+  content: counter(num) " commits";
+  display: block;
+  font-size: 3rem;
+  animation: count 3s ease-out forwards;
+}
+
+@keyframes count { to { --n: 128; } }
+```
+
+### scroll progress bar
+
+Scroll-driven animations tie an animation to scrolling instead of time.
+
+> [!NOTE]
+> Support is good in Chromium and newer Safari, so wrap it in `@supports` and let it fail quietly elsewhere.
+
+```css
+@supports (animation-timeline: scroll()) {
+  html::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: tomato;
+    transform-origin: 0 50%;
+    animation: grow linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
+@keyframes grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+```
+
+## putting it together
+
+This is a full page using the whole box budget: a nav in `head::before`, the page title as the hero, a subtitle in `style::before`, a numbered list across three boxes, and an inline SVG footer in `html::after`. Copy it into a file, open it, and start changing things.
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>tinysite</title>
+    <style>
+      :root {
+        --bg: #12101a;
+        --fg: #f4efe6;
+        --muted: #8b8697;
+        --accent: #ff6b4a;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+
+      html {
+        counter-reset: n;
+        background: var(--bg);
+        color: var(--fg);
+        font: 18px/1.6 system-ui, sans-serif;
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+      }
+
+      body { margin: 0; }
+
+      /* let the head's children render */
+      head, title, style { display: block; }
+      style { font-size: 0; line-height: 0; }
+
+      /* nav */
+      head::before {
+        content: "about  /  work  /  contact";
+        display: block;
+        white-space: pre;
+        margin-bottom: 4rem;
+        color: var(--muted);
+        font: 0.85rem/1 ui-monospace, monospace;
+      }
+
+      /* hero, using the real page title */
+      title {
+        color: var(--accent);
+        font: 800 clamp(3rem, 14vw, 6rem)/1 system-ui, sans-serif;
+        letter-spacing: -0.04em;
+        transition: letter-spacing 0.3s;
+      }
+      title::first-letter { color: var(--fg); }
+      title:hover { letter-spacing: 0; }
+
+      /* subtitle */
+      style::before {
+        content: "a website with zero tags.\A written in css, running in your browser.";
+        display: block;
+        white-space: pre-line;
+        margin: 1.5rem 0 3rem;
+        font-size: 1.25rem;
+        line-height: 1.5;
+      }
+      title:hover + style::before { color: var(--accent); }
+
+      /* numbered list across three boxes */
+      style::after, body::before, body::after {
+        counter-increment: n;
+        display: block;
+        padding: 1rem 0;
+        border-top: 1px solid #ffffff1f;
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+      style::after { content: counter(n, decimal-leading-zero) "  text comes from the content property"; }
+      body::before { content: counter(n, decimal-leading-zero) "  counters number things for you"; }
+      body::after  { content: counter(n, decimal-leading-zero) "  every pseudo-element is its own box"; }
+
+      /* footer with an inline svg */
+      html::after {
+        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Ccircle cx='7' cy='7' r='7' fill='%23ff6b4a'/%3E%3C/svg%3E") "  built with no tags";
+        display: block;
+        margin-top: 3rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body></body>
+</html>
+```
+
+## gotchas
+
+- **Nothing shows up.** Shapes need `content: ""`. A pseudo-element with no `content` property does not exist.
+- **Margin or width does nothing.** The box is still `inline`. Add `display: block` or `flex`.
+- **Spaces or newlines vanish.** Whitespace collapses. Use `white-space: pre`, `pre-line`, or `pre-wrap`.
+- **Your raw CSS is on the page.** You made `style` visible. Set `style { font-size: 0; line-height: 0; }`.
+- **A head child is missing.** `head` itself needs to be non-`none`, not just the child.
+- **Text will not copy or select.** That is how generated content works. Put important text in `title`.
+- **Counting order looks wrong.** Counters follow document order, so a box in `head` counts before a box in `body`.
+- **DevTools.** Pseudo-elements show up under their parent in the Elements panel. Click the `::before` line to see and edit its styles.
+
+## references
+
+- [CSS `content` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/content)
+- [Using CSS counters (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_counter_styles/Using_CSS_counters)
+- [`@property` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/@property)
+- [Scroll-driven animations (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll-driven_animations)
+- [A Single Div](https://a.singlediv.com/)

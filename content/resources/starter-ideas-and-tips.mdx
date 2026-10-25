@@ -1,0 +1,31 @@
+---
+title: Starter ideas and tips
+order: 12
+---
+
+# Starter ideas and tips
+
+If you're stuck on what to build or how to approach Tagless, here is a quick guide to help you choose the right tool for the job, along with some essential rules to keep in mind.
+
+## Choosing your approach
+
+Depending on what you want to build, certain tools will make your life much easier:
+
+| Approach | Good for | Why? |
+|---|---|---|
+| **Canvas 2D** | Games, pixel art, data viz, animation | Direct pixel manipulation is fast and easy to conceptualize. |
+| **Three.js** | 3D portfolios, interactive art, demos | Wraps the complex math of WebGL into a friendly API. |
+| **React (no JSX)** | Apps with state, forms, component trees | You get the power of React state without violating the tag ban. |
+| **CSS pseudo-elements** | Art projects, minimalist pages | Lets you build a scene entirely out of CSS without any JS! |
+| **Rust + WASM** | Performance-sensitive rendering, simulations | Run low-level systems code at near-native speeds in the browser. |
+| **p5.js** | Generative art, creative coding sketches | Built-in physics, math, and color helpers specifically for art. |
+| **SVG via JS** | Diagrams, charts, scalable illustrations | Infinitely scalable, crisp graphics driven by math. |
+
+## Essential Tips and Rules
+
+- **The Allowed Shell:** The only literal HTML tags you can type anywhere in your source code are `<html>`, `<head>`, `<body>`, `<meta>`, `<title>`, `<script>`, `<style>`, and `<canvas>`.
+- **Functions are fine:** `document.createElement` is always allowed! It's a JavaScript function, not a literal HTML tag. 
+- **Namespaces matter:** `document.createElementNS` is required when you want to create SVG or MathML nodes in JS, because they don't belong to the standard HTML namespace.
+- **Watch out for backticks:** No template literals containing tags! Typing `` `<div>${x}</div>` `` is an automatic fail.
+- **Check your dependencies:** Make sure any external libraries you import don't require you to write disallowed tags. For example, using the Three.js library is fine, but copy-pasting JSX from its docs is not.
+- **Use Linters:** Set up a simple grep or linter rule to catch stray `<` characters before you submit your project!
